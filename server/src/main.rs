@@ -3,8 +3,11 @@
 
 //use std::thread;
 
+pub mod config;
 mod http;
 use crate::http::*;
+
+use std::collections::HashMap;
 
 use std::{
     io::{BufReader},
@@ -13,6 +16,15 @@ use std::{
 
 fn main()
 {
+    let mut a = HashMap::<String, String>::new();
+    a.insert("a".to_string(), "b".to_string());
+    a.insert("c".to_string(), "d".to_string());
+
+    let b = encode_cookie(&a);
+    println!("{:?}", b);
+    println!("{:?}", decode_cookie(b));
+
+
     let listener = TcpListener::bind("127.0.0.1:5000").unwrap();
 
     for stream in listener.incoming() {

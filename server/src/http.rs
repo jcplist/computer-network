@@ -2,6 +2,31 @@ use std::io::{BufReader, BufRead, Read};
 use std::net::TcpStream;
 use std::collections::HashMap;
 
+use base64_url::{encode, decode};
+use serde::{Serialize, Deserialize};
+use serde_encrypt::{serialize::impls::BincodeSerializer, EncryptedMessage, traits::SerdeEncryptSharedKey};
+
+use crate::config::*;
+
+#[derive(Serialize, Deserialize)]
+struct HashMapWrap(HashMap<String,String>);
+
+impl SerdeEncryptSharedKey for HashMapWrap {
+    type S = BincodeSerializer<Self>;
+}
+
+// should remove pub if not testing
+pub fn encode_cookie(src: &HashMap<String,String>) -> String
+{
+    encode(&HashMapWrap(src.clone()).encrypt(&KEY).unwrap().serialize())
+}
+
+// should remove pub if not testing
+pub fn decode_cookie(src: String) -> Option<HashMap<String,String>>
+{
+    Some(HashMapWrap::decrypt_owned(&EncryptedMessage::deserialize(decode(&src).ok()?).ok()?, &KEY).ok()?.0)
+}
+
 #[derive(Debug)]
 pub enum RequestType {
     GET, POST,
@@ -13,6 +38,7 @@ pub struct Request {
     pub path: String,
     pub attr: HashMap<String, String>,
     pub body: Vec<u8>,
+    pub cookie: HashMap<String, String>
 }
 
 impl Request
@@ -24,6 +50,7 @@ impl Request
             path: String::new(),
             attr: HashMap::<String, String>::new(),
             body: Vec::<u8>::new(),
+            cookie: HashMap::<String, String>::new(),
         };
 
         let mut http_line = String::new();
@@ -45,6 +72,14 @@ impl Request
             if line == "" { break }
             let v: Vec<&str> = line.split(": ").collect();
             req.attr.insert(v.get(0)?.to_string(), v.get(1)?.to_string());
+        }
+
+        if let Some(cookie_raw) = req.attr.get("Cookie") {
+            if let Some(cookie) = decode_cookie(cookie_raw.to_string()) {
+                if cookie.get("secret") == Some(&SECRET.to_string()) {
+                    req.cookie = cookie;
+                }
+            }
         }
 
         if let Some(len) = req.attr.get("Content-Length") {
