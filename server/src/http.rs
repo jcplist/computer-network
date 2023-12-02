@@ -75,11 +75,14 @@ impl Request
         }
 
         if let Some(cookie_raw) = req.attr.get("Cookie") {
-            if cookie_raw.len() > 6 {
-                let cookie_raw = &cookie_raw[6..].to_string();
-                if let Some(cookie) = decode_cookie(cookie_raw.to_string()) {
-                    if cookie.get("secret") == Some(&SECRET.to_string()) {
-                        req.cookie = cookie;
+            let cookies: Vec<&str> = cookie_raw.split("; ").collect();
+            for cookie_var in cookies {
+                if cookie_var.len() > 6 && &cookie_var[..5] == "peach" {
+                    let cookie_var = &cookie_var[6..].to_string();
+                    if let Some(cookie) = decode_cookie(cookie_var.to_string()) {
+                        if cookie.get("secret") == Some(&SECRET.to_string()) {
+                            req.cookie = cookie;
+                        }
                     }
                 }
             }
