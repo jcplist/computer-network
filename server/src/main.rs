@@ -32,6 +32,12 @@ fn main()
         let mut reader = BufReader::new(&mut stream);
         let req = Request::new(&mut reader);
         println!("{:?}", req);
+        let mut res = Response::new();
+        res.code(200);
+        res.set_cookie("peach", "cute");
+        res.data(&"peach is very cute.\n".as_bytes().to_vec());
+        println!("{:?}", res);
+        res.submit(&mut stream);
     }
     /*
     let a = thread::spawn(|| {

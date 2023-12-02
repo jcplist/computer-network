@@ -1,4 +1,4 @@
-use std::io::{BufReader, BufRead, Read};
+use std::io::{BufReader, BufRead, Read, Write};
 use std::net::TcpStream;
 use std::collections::HashMap;
 
@@ -75,9 +75,12 @@ impl Request
         }
 
         if let Some(cookie_raw) = req.attr.get("Cookie") {
-            if let Some(cookie) = decode_cookie(cookie_raw.to_string()) {
-                if cookie.get("secret") == Some(&SECRET.to_string()) {
-                    req.cookie = cookie;
+            if cookie_raw.len() > 6 {
+                let cookie_raw = &cookie_raw[6..].to_string();
+                if let Some(cookie) = decode_cookie(cookie_raw.to_string()) {
+                    if cookie.get("secret") == Some(&SECRET.to_string()) {
+                        req.cookie = cookie;
+                    }
                 }
             }
         }
@@ -97,6 +100,69 @@ impl Request
 pub struct Response {
     http_code: i32,
     attr: HashMap<String, String>,
+    cookie: HashMap<String, String>,
     body: Vec<u8>,
 }
 
+impl Response {
+    pub fn new() -> Response
+    {
+        Response {
+            http_code: 0,
+            attr: HashMap::<String, String>::new(),
+            cookie: HashMap::<String, String>::new(),
+            body: Vec::<u8>::new(),
+        }
+    }
+
+    pub fn code(&mut self, x: i32)
+    {
+        self.http_code = x;
+    }
+
+    pub fn set(&mut self, key: &str, value: &str)
+    {
+        self.attr.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn set_cookie(&mut self, key: &str, value: &str)
+    {
+        self.cookie.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn data(&mut self, x: &Vec<u8>)
+    {
+        self.body = x.clone();
+    }
+
+    pub fn submit(&mut self, writer: &mut TcpStream) -> Option<()>
+    {
+        self.set_cookie("secret", SECRET);
+        self.attr.insert("Set-Cookie".to_string(), format!("peach={}", encode_cookie(&self.cookie)));
+        self.attr.insert("Content-Length".to_string(), self.body.len().to_string());
+        self.set("Connection", "Closed");
+        if self.attr.get("Content-Type") == None {
+            self.set("Content-Type", "text/html; charset=utf-8");
+        }
+        let mut x = br#"HTTP/1.1 "#.to_vec();
+        x.extend(self.http_code.to_string().as_bytes().to_vec());
+        x.push(b' ');
+        x.extend( match self.http_code {
+            200 => "OK",
+            206 => "Paartial Content",
+            302 => "Found",
+            400 => "Bad Request",
+            401 => "Unauthorized",
+            403 => "Forbidden",
+            404 => "Not Found",
+            _ => "qwq",
+        }.as_bytes().to_vec());
+        x.extend(b"\r\n".to_vec());
+        for (key, value) in self.attr.iter(){
+            x.extend(format!("{key}: {value}\r\n").as_bytes().to_vec());
+        }
+        x.extend(b"\r\n".to_vec());
+        x.append(&mut self.body);
+        writer.write_all(&x).ok()
+    }
+}
