@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use base64_url::{encode, decode};
 use serde::{Serialize, Deserialize};
 use serde_encrypt::{serialize::impls::BincodeSerializer, EncryptedMessage, traits::SerdeEncryptSharedKey};
+use native_tls::TlsStream;
 
 use crate::config::*;
 
@@ -43,7 +44,7 @@ pub struct Request {
 
 impl Request
 {
-    pub fn new(reader: &mut BufReader<&mut TcpStream>) -> Option<Request>
+    pub fn new(reader: &mut BufReader<&mut TlsStream<TcpStream>>) -> Option<Request>
     {
         let mut req = Request {
             meth: RequestType::GET,
@@ -138,7 +139,7 @@ impl Response {
         self.body = x.clone();
     }
 
-    pub fn submit(&mut self, writer: &mut TcpStream) -> Option<()>
+    pub fn submit(&mut self, writer: &mut TlsStream<TcpStream>) -> Option<()>
     {
         self.set_cookie("secret", SECRET);
         self.attr.insert("Set-Cookie".to_string(), format!("peach={}", encode_cookie(&self.cookie)));
