@@ -6,7 +6,7 @@ pub trait Empty
     fn empty() -> Self;
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct User {
     pub username: String,
     pub password: String,
@@ -28,6 +28,7 @@ impl User
     }
 }
 
+#[allow(dead_code)]
 pub struct Database<T> {
     handle: PickleDb,
     marker: T,
@@ -69,8 +70,12 @@ pub fn get_user(name: &str) -> Option<User>
     db.get(name)
 }
 
-pub fn add_user(username: &str, password: &str)
+pub fn add_user(username: &str, password: &str) -> bool
 {
     let mut db = USERDB.lock().unwrap();
+    if db.get(username) != None {
+        return false;
+    }
     db.set(username, &User::new(username, password));
+    return true;
 }

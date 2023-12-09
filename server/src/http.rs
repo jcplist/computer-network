@@ -105,6 +105,7 @@ pub struct Response {
     http_code: i32,
     attr: HashMap<String, String>,
     cookie: HashMap<String, String>,
+    cookie_used: bool,
     body: Vec<u8>,
 }
 
@@ -115,6 +116,7 @@ impl Response {
             http_code: 0,
             attr: HashMap::<String, String>::new(),
             cookie: HashMap::<String, String>::new(),
+            cookie_used: false,
             body: Vec::<u8>::new(),
         }
     }
@@ -132,6 +134,7 @@ impl Response {
     pub fn set_cookie(&mut self, key: &str, value: &str)
     {
         self.cookie.insert(key.to_string(), value.to_string());
+        self.cookie_used = true;
     }
 
     pub fn data(&mut self, x: &Vec<u8>)
@@ -141,8 +144,10 @@ impl Response {
 
     pub fn submit(&mut self, writer: &mut TlsStream<TcpStream>) -> Option<()>
     {
-        self.set_cookie("secret", SECRET);
-        self.attr.insert("Set-Cookie".to_string(), format!("peach={}", encode_cookie(&self.cookie)));
+        if self.cookie_used {
+            self.set_cookie("secret", SECRET);
+            self.attr.insert("Set-Cookie".to_string(), format!("peach={}", encode_cookie(&self.cookie)));
+        }
         self.attr.insert("Content-Length".to_string(), self.body.len().to_string());
         self.set("Connection", "Closed");
         if self.attr.get("Content-Type") == None {
