@@ -18,6 +18,7 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     static ref VALID_COOKIE: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+    static ref BOARD: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
 fn get_handler(req: &mut Request, res: &mut Response) {
@@ -33,6 +34,20 @@ fn get_handler(req: &mut Request, res: &mut Response) {
             if ok.contains(id) {
                 res.code(200);
                 res.data(&req.cookie.get("name").unwrap().as_bytes().to_vec());
+            } else {
+                res.code(400);
+            }
+        } else {
+            res.code(400);
+        }
+    } else if req.path == "/board" {
+        if let Some(id) = req.cookie.get("id") {
+            let ok = VALID_COOKIE.lock().unwrap();
+            if ok.contains(id) {
+                res.code(200);
+                let board = BOARD.lock().unwrap();
+                let board_data = board.join("\0");
+                res.data(&board_data.as_bytes().to_vec());
             } else {
                 res.code(400);
             }
@@ -67,6 +82,21 @@ fn get_handler(req: &mut Request, res: &mut Response) {
         f.read_to_end(&mut buf).unwrap();
         res.code(200);
         res.data(&buf);
+    } else if req.path == "/bulletin" {
+        if let Some(id) = req.cookie.get("id") {
+            let ok = VALID_COOKIE.lock().unwrap();
+            if ok.contains(id) {
+                let mut f = File::open("./static/bulletin.html").unwrap();
+                let mut buf = Vec::new();
+                f.read_to_end(&mut buf).unwrap();
+                res.code(200);
+                res.data(&buf);
+            } else {
+                res.code(400);
+            }
+        } else {
+            res.code(400);
+        }
     } else if req.path == "/favicon.ico" {
         let mut f = File::open("./static/rngbased.jpg").unwrap();
         let mut buf = Vec::new();
@@ -141,6 +171,24 @@ fn post_handler(req: &mut Request, res: &mut Response) {
         } else {
             res.code(400);
         }
+    } else if req.path == "/doBoard" {
+        let s = std::str::from_utf8(&req.body).unwrap();
+        if s.contains('\0') {
+            res.code(400);
+            return;
+        }
+        if let Some(id) = req.cookie.get("id") {
+            let ok = VALID_COOKIE.lock().unwrap();
+            if ok.contains(id) {
+                res.code(200);
+                let mut board = BOARD.lock().unwrap();
+                board.push(s.to_string());
+            } else {
+                res.code(400);
+            }
+        } else {
+            res.code(400);
+        }
     }
 }
 
@@ -153,5 +201,6 @@ pub fn handle_client(mut stream: TlsStream<TcpStream>) {
         RequestType::GET => get_handler(&mut req, &mut res),
         RequestType::POST => post_handler(&mut req, &mut res),
     };
+    println!("{:?}", res);
     res.submit(&mut stream);
 }
