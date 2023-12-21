@@ -16,14 +16,12 @@ impl SerdeEncryptSharedKey for HashMapWrap {
     type S = BincodeSerializer<Self>;
 }
 
-// should remove pub if not testing
-pub fn encode_cookie(src: &HashMap<String,String>) -> String
+fn encode_cookie(src: &HashMap<String,String>) -> String
 {
     encode(&HashMapWrap(src.clone()).encrypt(&KEY).unwrap().serialize())
 }
 
-// should remove pub if not testing
-pub fn decode_cookie(src: String) -> Option<HashMap<String,String>>
+fn decode_cookie(src: String) -> Option<HashMap<String,String>>
 {
     Some(HashMapWrap::decrypt_owned(&EncryptedMessage::deserialize(decode(&src).ok()?).ok()?, &KEY).ok()?.0)
 }

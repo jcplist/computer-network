@@ -45,6 +45,8 @@
             if (res.ok) {
                 res.text().then((name) => {
                     document.getElementsByClassName("text-end")[0].innerText = "Hi, " + name;
+                    document.getElementsByClassName("text-end")[0].innerHTML += " \
+                    <a href=\"/logout\" class=\"btn btn-outline-light me-2\">Logout</a>";
                     document.getElementsByTagName("ul")[0].innerHTML += "\
                     <li><a href=\"/bulletin\" class=\"nav-link px-2 text-white\">Bulletin</a></li>";
                 });

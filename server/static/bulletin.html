@@ -44,7 +44,9 @@
                 </tr>
             </thead>
             <tbody>
-    
+                <tr>
+                    <td>RngBased 好強！ <audio controls><source src="/70000.mp3" type="audio/mpeg"></audio></td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -53,6 +55,8 @@
             if (res.ok) {
                 res.text().then((name) => {
                     document.getElementsByClassName("text-end")[0].innerText = "Hi, " + name;
+                    document.getElementsByClassName("text-end")[0].innerHTML += " \
+                    <a href=\"/logout\" class=\"btn btn-outline-light me-2\">Logout</a>";
                 });
             } else {
                 document.getElementsByClassName("text-end")[0].innerHTML = "\

@@ -13,3 +13,7 @@ serde-encrypt = "0.7.0"
 base64-url = "2.0.0"
 native-tls = "0.2.11"
 regex = "1.10.2"
+
+[profile.release]
+lto = "thin"
+strip = true

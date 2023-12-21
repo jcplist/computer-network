@@ -1,5 +1,3 @@
-use std::thread;
-
 pub mod config;
 pub mod http;
 pub mod db;
@@ -8,16 +6,19 @@ use crate::handler::handle_client;
 use crate::config::{IDENTITY_FILE, SECRET};
 
 use std::{
+    thread,
+    panic::set_hook,
     sync::Arc,
     fs::File,
-    io::{BufReader, Read},
-    net::{TcpListener, TcpStream},
+    io::Read,
+    net::TcpListener,
 };
 
-use native_tls::{Identity, TlsAcceptor, TlsStream};
+use native_tls::{Identity, TlsAcceptor};
 
 fn main()
 {
+    set_hook(Box::new(|_info| {}));
     let mut file = File::open(IDENTITY_FILE).unwrap();
     let mut pkcs12 = vec![];
     file.read_to_end(&mut pkcs12).unwrap();
