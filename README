@@ -1,0 +1,72 @@
+## Computer Network Phase2
+
+- B10902003 吳孟哲
+
+### How to run
+
+- Environment
+
+```
+❯ rustc --version
+rustc 1.74.0 (79e9716c9 2023-11-13)
+❯ cargo --version
+cargo 1.74.0 (ecb9851af 2023-10-18)
+```
+
+- Build and Run
+
+```
+cd server
+cargo run --release
+```
+
+- Or use the compiled binary
+
+```
+cd server
+target/release/server
+```
+
+- Access the page via https://localhost:5000
+
+### Claimed Features
+
+- 留言板
+- 註冊登入登出
+- 額外功能
+    - multithread
+    - HTTPS
+- 聲音串流
+- 影片串流
+
+#### 留言板
+
+登入後可以 access `/bulletin`。
+用 `innerText` 寫入網頁，無 xss 問題。
+
+#### 註冊登入登出
+
+這邊有使用 crate `pickleDB`。
+cookie 的部分有加密，無法隨意竄改或繞過登入。
+
+#### multithread
+用 `std::thread` 平行處理不同 request。
+
+#### HTTPS
+
+使用 crate `native_tls` 封裝的 `TlsStream`
+
+憑證生成 script：
+
+```
+openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out peach.crt -keyout peach.key
+openssl pkcs12 -export -out peach.pfx -inkey peach.key -in peach.crt
+```
+
+#### 聲音/影音串流
+
+初次 request 會給 Content-Length 後 close connection。
+
+之後就會因為有 `Accept-Ranges: bytes`，瀏覽器開始使用 `Range`，然後利用 HTTP 206 Partial Content 達到串流效果。
+
+支援進度條滑動。
